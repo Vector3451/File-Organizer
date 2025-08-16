@@ -9,6 +9,7 @@ Features
 
 - Automatically moves files into categories:
   - Images, Videos, Documents, Archives, Executables, Others
+  - Can create your own folders with your extensions to organize
 - Safety-first:
   - Only processes whitelisted folders
   - Ignores hidden files and system folders
