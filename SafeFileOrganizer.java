@@ -55,10 +55,47 @@ public class SafeFileOrganizer
         //Basically what this section does is it makes sure that it'll print out whatever that's gonna be moved.
         System.out.println("Do a dry run first? (Y/n):");
         boolean dryRun = scanner.nextLine().trim().equalsIgnoreCase("Y");
-        organizeFiles(folder, dryRun);
+        Map<String, List<String>> customCategories = getCustomCategories(scanner);
+        // Merge default and custom categories
+        Map<String, List<String>> allCategories = new HashMap<>(FILE_CATEGORIES);
+        allCategories.putAll(customCategories);
+        organizeFiles(new File(inputPath), dryRun, allCategories);
     }
 
-    private static void organizeFiles(File folder, boolean dryRun) {
+    private static Map<String, List<String>> getCustomCategories(Scanner scanner) {
+        Map<String, List<String>> customCategories = new HashMap<>();
+
+        System.out.println("Do you want to add custom categories? (Y/n):");
+        String answer = scanner.nextLine().trim();
+
+        while (answer.equalsIgnoreCase("Y")) {
+            System.out.println("Enter folder name for the new category:");
+            String folderName = scanner.nextLine().trim();
+
+            System.out.println("Enter file extensions for this category (comma separated, e.g. .pdf,.docx):");
+            String extensionsInput = scanner.nextLine().trim();
+
+            // Parse extensions into list.
+            List<String> extensions = new ArrayList<>();
+            for (String ext : extensionsInput.split(",")) {
+                ext = ext.trim().toLowerCase();
+                if (!ext.startsWith(".")) {
+                    ext = "." + ext;
+                }
+                extensions.add(ext);
+            }
+
+            customCategories.put(folderName, extensions);
+
+            System.out.println("Add another custom category? (Y/n):");
+            answer = scanner.nextLine().trim();
+        }
+
+        return customCategories;
+    }
+
+
+    private static void organizeFiles(File folder, boolean dryRun, Map<String, List<String>> categories) {
         File[] files = folder.listFiles();
         if (files == null) return;
         for (File file : files) {
@@ -67,7 +104,7 @@ public class SafeFileOrganizer
                 String extension = getFileExtension(file.getName()).toLowerCase();
                 if (BLOCKED_EXTENSIONS.contains(extension)) continue;
                 boolean moved = false;
-                for (Map.Entry<String, List<String>> entry : FILE_CATEGORIES.entrySet()) {
+                for (Map.Entry<String, List<String>> entry : categories.entrySet()) {
                     if (entry.getValue().contains(extension)) {
                         if (dryRun) {
                             System.out.println("[DRY RUN] Would move " + file.getName() + " → " + entry.getKey() + "/");
@@ -91,10 +128,11 @@ public class SafeFileOrganizer
         }
         if (dryRun) {
             System.out.println("Dry run complete. No files were moved.");
-        } else {
+        }else {
             System.out.println("File organization complete.");
         }
     }
+
 
     private static void moveFileToCategory(File file, File baseFolder, String category) throws IOException {
         File categoryDir = new File(baseFolder, category);
@@ -113,7 +151,7 @@ public class SafeFileOrganizer
         private static boolean isPathSafe(String inputPath) {
         try {
             Path canonicalInput = new File(inputPath).getCanonicalFile().toPath();
-            // Check: is under whitelisted base directory
+            // Check whether if it is under whitelisted base directory.
             for (String safe : SAFE_DIRECTORIES) {
                 Path safePath = new File(safe).getCanonicalFile().toPath(); //Canonical Path is the fully resolved, absolute, unique path path.
                 if (canonicalInput.startsWith(safePath)) {
